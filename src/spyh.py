@@ -774,10 +774,9 @@ def computeForcesMorrisPeriodicX(partFLUID,partSPID,partPos,partVel,partRho,list
                 #velocity
                 v_i = partVel[i,:]
                 #Continuity Velocity :  the velocity is the true wall velocity 
-                #for now only static walls are considered :
                 v_j = partVel[listnb][:]
-                v_j[partFLUID[listnb]==False][:,0]= 0 #set wall velocity to true vel
-                v_j[partFLUID[listnb]==False][:,1]= 0 #set wall velocity to true vel
+                #v_j[partFLUID[listnb]==False][:,0]= 0 #set wall velocity to true vel
+                #v_j[partFLUID[listnb]==False][:,1]= 0 #set wall velocity to true vel
                 rVelCont = v_i-v_j
                 #Viscosity velocity
                 # use interpolated velocity (see next TD)
@@ -799,8 +798,8 @@ def computeForcesMorrisPeriodicX(partFLUID,partSPID,partPos,partVel,partRho,list
 
 @njit   
 def computeForcesMorris(partFLUID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                    aW,h,m,B,rhoF,gamma,grav,mu,d=2):
-        '''
+                        aW,h,m,B,rhoF,gamma,grav,mu,d=2):
+    '''
         Compute the forces using Morris viscous forces
         and the RHS for the continuity equation
         input :
@@ -821,51 +820,49 @@ def computeForcesMorris(partFLUID,partSPID,partPos,partVel,partRho,listNeibSpace
             - d : dimension
         return :
             - forces : table of the particle forces
-            - drhodt : table of the density variation:
-        '''
-
-        forces = np.zeros_like(partVel)
-        drhodt = np.zeros_like(partRho)
-        nPart = len(partFLUID)
-        for i in range(nPart):
-            if partFLUID[i]:
-                spid_i = int(partSPID[i])
-                #list neib
-                listnb = listNeibSpace[spid_i,:]
-                listnb = listnb[listnb>-1]
-                listnb = listnb[listnb!=i] #no self contribution
-                #Position, norm  and er
-                rPos = partPos[i,:]-partPos[listnb][:]
-                rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
-                q=rNorm/h
-                dwdr = Fw(q,aW,h)
-                er = np.zeros_like(rPos)
-                er[:,0] = rPos[:,0]/rNorm
-                er[:,1] = rPos[:,1]/rNorm
-                #velocity
-                v_i = partVel[i,:]
-                #Continuity Velocity :  the velocity is the true wall velocity 
-                #for now only static walls are considered :
-                v_j = partVel[listnb][:]
-                v_j[partFLUID[listnb]==False][:,0]= 0 #set wall velocity to true vel
-                v_j[partFLUID[listnb]==False][:,1]= 0 #set wall velocity to true vel
-                rVelCont = v_i-v_j
-                #Viscosity velocity
-                # use interpolated velocity (see next TD)
-                rVelViscous = v_i-partVel[listnb][:]
-                #pressure contrib
-                rho_i=partRho[i]
-                rho_j=partRho[listnb]
-                P_i=pressure(rho_i,B,rhoF,gamma)
-                P_j=pressure(rho_j,B,rhoF,gamma)
-                F_Pres = pressureGradContrib(rho_i,rho_j,P_i,P_j,dwdr,er,m)
-                #viscous contribution
-                F_visc = MorrisViscContrib(mu,rho_i, rho_j,dwdr,rVelViscous,rPos,m)
-                # Add the forces contrib
-                forces[i,:] = np.sum(F_Pres,0)+np.sum(F_visc,0)+grav
-                #continuity contribution
-                drhodt[i] = np.sum(velocityDivContrib(rVelCont,rPos,dwdr,er,m),0)
-        return forces,drhodt
+            - drhodt : table of the density variation
+    '''
+    forces = np.zeros_like(partVel)
+    drhodt = np.zeros_like(partRho)
+    nPart = len(partFLUID)
+    for i in range(nPart):
+        if partFLUID[i]:
+            spid_i = int(partSPID[i])
+            #list neib
+            listnb = listNeibSpace[spid_i,:]
+            listnb = listnb[listnb>-1]
+            listnb = listnb[listnb!=i] #no self contribution
+            #Position, norm  and er
+            rPos = partPos[i,:]-partPos[listnb][:]
+            rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
+            q=rNorm/h
+            dwdr = Fw(q,aW,h)
+            er = np.zeros_like(rPos)
+            er[:,0] = rPos[:,0]/rNorm
+            er[:,1] = rPos[:,1]/rNorm
+            #velocity
+            v_i = partVel[i,:]
+            #Continuity Velocity :  the velocity is the true wall velocity 
+            v_j = partVel[listnb][:]
+            #v_j[partFLUID[listnb]==False][:,0]= 0 #set wall velocity to true vel
+            #v_j[partFLUID[listnb]==False][:,1]= 0 #set wall velocity to true vel
+            rVelCont = v_i-v_j
+            #Viscosity velocity
+            # use interpolated velocity (see next TD)
+            rVelViscous = v_i-partVel[listnb][:]
+            #pressure contrib
+            rho_i=partRho[i]
+            rho_j=partRho[listnb]
+            P_i=pressure(rho_i,B,rhoF,gamma)
+            P_j=pressure(rho_j,B,rhoF,gamma)
+            F_Pres = pressureGradContrib(rho_i,rho_j,P_i,P_j,dwdr,er,m)
+            #viscous contribution
+            F_visc = MorrisViscContrib(mu,rho_i, rho_j,dwdr,rVelViscous,rPos,m)
+            # Add the forces contrib
+            forces[i,:] = np.sum(F_Pres,0)+np.sum(F_visc,0)+grav
+            #continuity contribution
+            drhodt[i] = np.sum(velocityDivContrib(rVelCont,rPos,dwdr,er,m),0)
+    return forces,drhodt
     
     
     

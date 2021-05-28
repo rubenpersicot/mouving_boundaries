@@ -87,6 +87,7 @@ def MonaghanViscContrib(mu,rho_i, rho_j,dwdr,rVel,rPos,m):
     F[:,1] = 2*(2+2)*m*mu/rho_i/rho_j*veldotpos/rNorm**2*dwdr*rPos[:,1]/rNorm
     #END
     return F
+
 @njit
 def MorrisViscContrib(mu,rho_i, rho_j,dwdr,rVel,rPos,m):
     F = np.zeros_like(rPos)
@@ -96,3 +97,16 @@ def MorrisViscContrib(mu,rho_i, rho_j,dwdr,rVel,rPos,m):
     F[:,1] = 2*m*(mu/(rho_i*rho_j))*dwdr/rNorm*rVel[:,1]
     #END
     return F
+
+@njit
+def FFluidSolidContrib(pi, pj, mu, rho_i, rho_j,dwdr,rVel,rPos,m,ms):
+    F = np.zeros_like(rPos)
+    #TODO : COMPLETE HERE
+    rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
+    veldotpos = rVel[:,0]*rPos[:,0]+rVel[:,1]*rPos[:,1]
+    F[:,0] = (-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,0]/rNorm
+    F[:,1] = (-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,1]/rNorm
+    #END
+    return F
+
+
