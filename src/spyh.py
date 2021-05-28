@@ -451,13 +451,13 @@ def interpolateMobileBoundaryPeriodicX(partMOBILEBOUND,partSPID,partPos,partVel,
                 shepard = shepardContrib(vol_j,w_ij)
                 shepard = max(np.sum(shepard,0), shepardMin)
                 #VELOCITY INTERPOLATION FOR MOBILE BOUNDARIES according to S. Adami's work
-                VTildeInt_x = -wallVel[0]*vol_j*w_ij 
-                VTildeInt_y = -wallVel[1]*vol_j*w_ij
+                VTildeInt_x = wallVel[0]*vol_j*w_ij 
+                VTildeInt_y = wallVel[1]*vol_j*w_ij
                 partVel[i,0] = 2*wallVel[0] - np.sum(VTildeInt_x,0)/shepard
-                partVel[i,1] = 2*wallVel[1] - np.sum(VTildeInt_x,0)/shepard
+                partVel[i,1] = 2*wallVel[1] - np.sum(VTildeInt_y,0)/shepard
                 pres = np.sum(PressInt,0)/shepard
                 partRho[i] = density(pres,B,rhoF,gamma)
-    return partRho
+    return partRho, partVel
 
 
 @njit
