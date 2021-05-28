@@ -88,12 +88,42 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
 @njit
 def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,gamma,grav,mu,OG, V_OG,dt):
+        '''
+        Compute the forces using Morris viscous forces
+        and the RHS for the continuity equation
+        input :
+            - partMOBILESOLID : True if a MOBILESOLID particle
+            - partSPID :  particle space ID
+            - partPos : particle position
+            - partVel : particle velocity
+            - partRho : particle density
+            - listNeibSpace : list of the particle influencing a particle in a space spId
+            - aW : constant of kernel
+            - h : smoothing length
+            - m : particle mass
+            - B : state constant
+            - rhoF : reference density
+            - gamma : polytropic gas constant
+            - grav : gravitational acceleration
+            - mu : viscosity
+            - d : dimension
+        return :
+            - forces : table of the particle forces
+    '''
     A_OG = grav + np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,gamma,grav,mu),0)/ms
     V_OG += A_OG*dt
     OG += V_OG*dt
-    return OG, V_OG, A_OG
+    return OG, V_OG
 
+@njit
+def MoveSolidParticles(partMOBILESOLID, partPos, PartVel, OG, V_OG):
+    nPart = len(partMOBILESOLID)
+    for i in range(nPart):
+        if partMOBILESOLID[i]:
+            partPos[i,:]+=OG
+            partVel[i,:]+=V_OG
+    return partPos, PartVel 
 
 @njit
 def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
