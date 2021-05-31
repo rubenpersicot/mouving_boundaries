@@ -11,8 +11,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.rcParams['text.usetex'] = True
-matplotlib.rc('text', usetex=True)
+#matplotlib.rcParams['text.usetex'] = True
+#matplotlib.rc('text', usetex=True)
 from matplotlib.patches import Polygon
 from matplotlib.collections import PolyCollection
 from matplotlib.collections import PatchCollection
