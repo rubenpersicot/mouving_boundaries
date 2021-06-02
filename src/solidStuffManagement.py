@@ -12,6 +12,8 @@ from numba import njit
 from src.sphvar import *
 from src.state import *
 from src.contrib import *
+from src.spyh import *
+
 
 @njit
 def computeCenterOfMass(part, n):
@@ -26,7 +28,7 @@ def computeCenterOfMass(part, n):
 
 @njit   
 def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,ms,B,rhoF,gamma,grav,mu,d=2):
+                        aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,d=2):
     '''
         Compute the forces using Morris viscous forces
         and the RHS for the continuity equation
@@ -53,7 +55,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
     drhodt = np.zeros_like(partRho)
     nPart = len(partMOBILESOLID)
     for i in range(nPart):
-        if partpartMOBILESOLID[i]:
+        if partMOBILESOLID[i]:
             spid_i = int(partSPID[i])
             #list neib
             listnb = listNeibSpace[spid_i,:]
@@ -82,13 +84,13 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             P_f=pressure(rho_f,B,rhoF,gamma)
             FFluidSolid = FFluidSolidContrib(P_f, P_s, mu, rho_f, rho_s,dwdr,rVel,rPos,m,ms)
             # We sum the contrib for all fluid particles
-            forces[i,:] = np.sum(F,0)
+            forces[i,:] = np.sum(FFluidSolid,0)
     return forces
 
 @njit
 def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,ms,B,rhoF,gamma,grav,mu,OG, V_OG,dt):
-        '''
+                        aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,OG, V_OG,dt):
+    '''
         Compute the forces using Morris viscous forces
         and the RHS for the continuity equation
         input :
@@ -110,20 +112,21 @@ def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partR
         return :
             - forces : table of the particle forces
     '''
-    A_OG = grav + np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,ms,B,rhoF,gamma,grav,mu),0)/ms
-    V_OG += A_OG*dt
-    OG += V_OG*dt
-    return OG, V_OG
+    A_OG = grav + np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,ms,B,rhoF, rhoS,gamma,grav,mu),0)/ms
+    V_OG = V_OG + A_OG*dt
+    dOG = V_OG*dt
+    return dOG, V_OG
 
 @njit
-def MoveSolidParticles(partMOBILESOLID, partPos, PartVel, OG, V_OG):
+def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, V_OG):
     nPart = len(partMOBILESOLID)
     for i in range(nPart):
         if partMOBILESOLID[i]:
-            partPos[i,:]+=OG
-            partVel[i,:]+=V_OG
-    return partPos, PartVel 
+            partPos[i,0]=partPos[i,0]+dOG[0]
+            partPos[i,1]=partPos[i,1]+dOG[1]
+            partVel[i,0]=partVel[i,0]+V_OG[0]
+            partVel[i,1]=partVel[i,1]+V_OG[1]
+    return partPos, partVel 
 
 @njit
 def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
@@ -173,10 +176,10 @@ def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,part
                 shepard = shepardContrib(vol_j,w_ij)
                 shepard = max(np.sum(shepard,0), shepardMin)
                 #VELOCITY INTERPOLATION FOR MOBILE BOUNDARIES according to S. Adami's work
-                VTildeInt_x = SolidVel[0]*vol_j*w_ij 
-                VTildeInt_y = SolidVel[1]*vol_j*w_ij
-                partVel[i,0] = 2*SolidVel[0] - np.sum(VTildeInt_x,0)/shepard
-                partVel[i,1] = 2*SolidVel[1] - np.sum(VTildeInt_y,0)/shepard
+                VTildeInt_x = solidVel[0]*vol_j*w_ij 
+                VTildeInt_y = solidVel[1]*vol_j*w_ij
+                partVel[i,0] = 2*solidVel[0] - np.sum(VTildeInt_x,0)/shepard
+                partVel[i,1] = 2*solidVel[1] - np.sum(VTildeInt_y,0)/shepard
                 pres = np.sum(PressInt,0)/shepard
                 partRho[i] = density(pres,B,rhoF,gamma)
     return partRho,partVel

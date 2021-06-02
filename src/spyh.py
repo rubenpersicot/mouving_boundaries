@@ -308,6 +308,7 @@ def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace
                 w_ij = wend(q,aW,h)
                 #
                 rho_j=partRho[listnb]
+                vel_j = partVel[listnb][:]
                 P_j= pressure(rho_j,B,rhoF,gamma)
                 rho_j[rho_j<rhoF] = rhoF
                 vol_j = m/rho_j
