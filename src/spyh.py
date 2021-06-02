@@ -309,7 +309,7 @@ def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace
                 #
                 rho_j=partRho[listnb]
                 vel_j = partVel[listnb][:]
-                P_j= pressure(rho_j,B,rhoF,gamma)
+                P_j = pressure(rho_j,B,rhoF,gamma)
                 rho_j[rho_j<rhoF] = rhoF
                 vol_j = m/rho_j
                 rho_j= partRho[listnb]
@@ -459,6 +459,63 @@ def interpolateMobileBoundaryPeriodicX(partMOBILEBOUND,partSPID,partPos,partVel,
                 partRho[i] = density(pres,B,rhoF,gamma)
     return partRho, partVel
 
+@njit
+def interpolateMobileBoundary(partMOBILEBOUND,partSPID,partPos,partVel, wallVel,partRho,listNeibSpace,\
+                        aW,h,m,B,rhoF,gamma,grav,shepardMin = 10**(-6),d=2):
+    '''
+    interpolate the pressure and velocity at the walls
+    input : 
+        - partMOBILEBOUND : table of True,False showing which particle is a mobile Boundary
+        - partSPID : table of particles SPIDs
+        - partPos : table of particles positions
+        - partVel : table of particles velocities
+        - wallVel : prescribed wall velocity
+        - partRho : table of particles density
+        - partSpace : table of particle per spaces (-1 are no values)
+        - neibSpace : table of spaces neibs
+        - aW,d,h : parameters for the wendland
+        - m : particle mass
+        - B, rhoF, gamma : state equation parameters
+        - grav : gravital field acceleration
+        - xper : periodicity length in x
+        - shepardMin : threshold for the shepard
+    output : 
+        - partRho : updated table of density with interpolated pressure
+        - partVel : updated table of velocity using Adami et al. 
+    '''
+    nPart = len(partMOBILEBOUND)
+    for i in range(nPart):
+            if partMOBILEBOUND[i]:
+                spid_i = int(partSPID[i])
+                #list neib
+                listnb = listNeibSpace[spid_i,:]
+                listnb = listnb[listnb>-1]
+                listnb = listnb[listnb!=i] #no self contribution
+                # keep only the fluid particles 
+                listnb = listnb[partMOBILEBOUND[listnb]==False]
+                rPos = partPos[i,:]-partPos[listnb][:]
+                rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
+                q=rNorm/h
+                w_ij = wend(q,aW,h)
+                #
+                rho_j=partRho[listnb]
+                vel_j = partVel[listnb][:]
+                P_j= pressure(rho_j,B,rhoF,gamma)
+                rho_j[rho_j<rhoF] = rhoF
+                vol_j = m/rho_j
+                rho_j= partRho[listnb]
+                PressInt = pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav)
+                PressInt[PressInt<0] = 0
+                shepard = shepardContrib(vol_j,w_ij)
+                shepard = max(np.sum(shepard,0), shepardMin)
+                #VELOCITY INTERPOLATION FOR MOBILE BOUNDARIES according to S. Adami's work
+                VTildeInt_x = wallVel[0]*vol_j*w_ij 
+                VTildeInt_y = wallVel[1]*vol_j*w_ij
+                partVel[i,0] = 2*wallVel[0] - np.sum(VTildeInt_x,0)/shepard
+                partVel[i,1] = 2*wallVel[1] - np.sum(VTildeInt_y,0)/shepard
+                pres = np.sum(PressInt,0)/shepard
+                partRho[i] = density(pres,B,rhoF,gamma)
+    return partRho, partVel
 
 @njit
 def CFLConditions(partVel,h,c0,grav,rhoF,mu,CFL=0.1):
@@ -709,6 +766,39 @@ def integrationStepPeriodicX_Moving_Bound(partMOBILEBOUND,partPos,partVel,partRh
     partPos[:,0] = np.mod(partPos[:,0],xper)
     return partPos, partRho
     
+@njit
+def integrationStepPeriodicX_Moving_BoundCavity(partMOBILEBOUND,partPos,partVel,partRho,partFORCES,partDRHODT,dt,xper):
+    '''
+    Euler explicit integration step for mobile bound particle
+    input : 
+            - partMOBILEBOUND : True if a MOBILEBOUND particle
+            - partPos : particle position
+            - partVel : particle velocity
+            - partRho : particle density
+            - partFORCES : particle forces
+            - partDRHODT : particle density variation
+            - dt : particle time step
+    return :
+            - partPos : updated particle position
+            - partVel : updated particle velocity
+            - partRho : updated particle density
+    '''
+    nPart = len(partPos)
+    partIntermed = np.zeros((nPart,2))
+    for i in range(nPart):
+        if partMOBILEBOUND[i]:
+            #TODO COMPLETE HERE
+            partPos[i,:] += dt*partVel[i,:]
+            partIntermed[i,:] = partPos[i,:]
+            partRho[i] += dt*partDRHODT[i]
+            #END
+    #periodicity
+    partIntermed[:,0] = np.mod(partIntermed[:,0],xper)
+    for i in range(nPart):
+        if partMOBILEBOUND[i]:
+            partPos[i,:] = partIntermed[i,:]
+    return partPos, partRho
+
 @njit 
 def checkDensity(partRho,rhoMin,rhoMax):
     '''

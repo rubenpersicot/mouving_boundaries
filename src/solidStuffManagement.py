@@ -80,7 +80,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             #pressure contrib
             rho_s=partRho[i]
             rho_f=partRho[listnb]
-            P_s=pressure(rho_s,B,rhoS,gamma)
+            P_s=0#pressure(rho_s,B,rhoS,gamma)
             P_f=pressure(rho_f,B,rhoF,gamma)
             FFluidSolid = FFluidSolidContrib(P_f, P_s, mu, rho_f, rho_s,dwdr,rVel,rPos,m,ms)
             # We sum the contrib for all fluid particles
@@ -112,7 +112,10 @@ def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partR
         return :
             - forces : table of the particle forces
     '''
-    A_OG = grav + np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,ms,B,rhoF, rhoS,gamma,grav,mu),0)/ms
+    F = np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,ms,B,rhoF,       rhoS,gamma,grav,mu),0)
+    print("Force fluid -> solid :")
+    print(F)
+    A_OG = grav + F/ms
     V_OG = V_OG + A_OG*dt
     dOG = V_OG*dt
     return dOG, V_OG
