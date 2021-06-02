@@ -273,8 +273,7 @@ def getListNeib(partSpace,neibSpace,listNeibSpace):
 
 
 @njit
-def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,B,rhoF,gamma,grav,shepardMin = 10**(-6),d=2):
+def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,B,rhoF,gamma,grav,shepardMin = 10**(-6),d=2):
     '''
     interpolate the pressure and velocity at the walls
     input : 
@@ -301,8 +300,7 @@ def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace
                 #list neib
                 listnb = listNeibSpace[spid_i,:]
                 listnb = listnb[listnb>-1]
-                listnb = listnb[listnb!=i] #no self contribution
-                # keep only the fluid particles 
+                listnb = listnb[listnb!=i]
                 listnb = listnb[partBOUND[listnb]==False]
                 rPos = partPos[i,:]-partPos[listnb][:]
                 rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
@@ -331,6 +329,7 @@ def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace
 @njit
 def interpolateBoundaryPeriodicX(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,xper,shepardMin = 10**(-6),d=2):
+    
     '''
     interpolate the pressure and velocity at the walls
     input : 
@@ -353,40 +352,40 @@ def interpolateBoundaryPeriodicX(partBOUND,partSPID,partPos,partVel,partRho,list
     '''
     nPart = len(partBOUND)
     for i in range(nPart):
-            if partBOUND[i]:
-                spid_i = int(partSPID[i])
-                #list neib
-                listnb = listNeibSpace[spid_i,:]
-                listnb = listnb[listnb>-1]
-                listnb = listnb[listnb!=i] #no self contribution
-                # keep only the fluid particles 
-                listnb = listnb[partBOUND[listnb]==False]
-                rPos = partPos[i,:]-partPos[listnb][:]
-                rPos[:,0] += (rPos[:,0]>xper/2)*(-1*xper)+(rPos[:,0]<-xper/2)*xper
-                rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
-                q=rNorm/h
-                w_ij = wend(q,aW,h)
-                #
-                rho_j=partRho[listnb]
-                vel_j = partVel[listnb][:]
-                P_j= pressure(rho_j,B,rhoF,gamma)
-                rho_j[rho_j<rhoF] = rhoF
-                vol_j = m/rho_j
-                rho_j= partRho[listnb]
-                PressInt = pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav)
-                PressInt[PressInt<0] = 0
-                shepard = shepardContrib(vol_j,w_ij)
-                shepard = max(np.sum(shepard,0), shepardMin)
-                #COMPLETE HERE
-                VTildeInt_x = -vel_j[:,0]*vol_j*w_ij
-                VTildeInt_y = -vel_j[:,1]*vol_j*w_ij
-                partVel[i,0] = np.sum(VTildeInt_x,0)/shepard
-                partVel[i,1] = np.sum(VTildeInt_y,0)/shepard
-                #END
-                pres = np.sum(PressInt,0)/shepard
-                partRho[i] = density(pres,B,rhoF,gamma)
+        if partBOUND[i]:
+            spid_i = int(partSPID[i])
+            #list neib
+            listnb = listNeibSpace[spid_i,:]
+            listnb = listnb[listnb>-1]
+            listnb = listnb[listnb!=i] #no self contribution
+            # keep only the fluid particles 
+            listnb = listnb[partBOUND[listnb]==False]
+            rPos = partPos[i,:]-partPos[listnb][:]
+            rPos[:,0] += (rPos[:,0]>xper/2)*(-1*xper)+(rPos[:,0]<-xper/2)*xper
+            rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
+            q=rNorm/h
+            w_ij = wend(q,aW,h)
+            rho_j=partRho[listnb]
+            vel_j = partVel[listnb][:]
+            P_j= pressure(rho_j,B,rhoF,gamma)
+            rho_j[rho_j<rhoF] = rhoF
+            vol_j = m/rho_j
+            rho_j= partRho[listnb]
+            PressInt = pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav)
+            PressInt[PressInt<0] = 0
+            shepard = shepardContrib(vol_j,w_ij)
+            shepard = max(np.sum(shepard,0), shepardMin)
+            #COMPLETE HERE
+            VTildeInt_x = -vel_j[:,0]*vol_j*w_ij
+            VTildeInt_y = -vel_j[:,1]*vol_j*w_ij
+            partVel[i,0] = np.sum(VTildeInt_x,0)/shepard
+            partVel[i,1] = np.sum(VTildeInt_y,0)/shepard
+            #END
+            pres = np.sum(PressInt,0)/shepard
+            partRho[i] = density(pres,B,rhoF,gamma)
     return partRho,partVel
 
+@njit
 def initMobileBoundVelocity(partMOBILEBOUND, partVel, U):
     '''
     Initialisation of mobile bound particle velocity:
