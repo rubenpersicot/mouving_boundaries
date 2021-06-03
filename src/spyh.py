@@ -272,7 +272,6 @@ def getListNeib(partSpace,neibSpace,listNeibSpace):
     return listNeibSpace
 
 
-@njit
 def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,B,rhoF,gamma,grav,shepardMin = 10**(-6),d=2):
     '''
     interpolate the pressure and velocity at the walls
@@ -327,7 +326,7 @@ def interpolateBoundary(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace
                 partRho[i] = density(pres,B,rhoF,gamma)
     return partRho,partVel
 
-@njit
+
 def interpolateBoundaryPeriodicX(partBOUND,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,xper,shepardMin = 10**(-6),d=2):
     
@@ -400,7 +399,7 @@ def initMobileBoundVelocity(partMOBILEBOUND, partVel, U):
             partVel[i][0] = U
     return partVel
 
-@njit
+
 def interpolateMobileBoundaryPeriodicX(partMOBILEBOUND,partSPID,partPos,partVel, wallVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,xper,shepardMin = 10**(-6),d=2):
     '''
@@ -459,7 +458,7 @@ def interpolateMobileBoundaryPeriodicX(partMOBILEBOUND,partSPID,partPos,partVel,
                 partRho[i] = density(pres,B,rhoF,gamma)
     return partRho, partVel
 
-@njit
+
 def interpolateMobileBoundary(partMOBILEBOUND,partSPID,partPos,partVel, wallVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,shepardMin = 10**(-6),d=2):
     '''

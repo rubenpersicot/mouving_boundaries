@@ -26,7 +26,8 @@ def computeCenterOfMass(part, n):
     OG = np.array([1/n*np.sum(part[infoTab == MOBILESOLID] [:,POS[0]]),1/n*np.sum(part[infoTab == MOBILESOLID] [:,POS[1]])])
     return OG
 
-@njit   
+   
+#@njit
 def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,rhoS,gamma,grav,solidAcc,mu,d=2):
     '''
@@ -91,7 +92,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             forces[i,:] = np.sum(FFluidSolid,0)
     return forces
 
-@njit
+#@njit
 def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,OG, V_OG,A_OG,part,nSolid,dt):
     '''
@@ -146,7 +147,7 @@ def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, V_OG):
             partVel[i,1]=partVel[i,1]+V_OG[1]
     return partPos, partVel 
 
-@njit
+#@njit
 def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,solidVel,solidAcc,shepardMin = 10**(-6),d=2):
     '''
