@@ -17,7 +17,7 @@ from src.spyh import *
 
 
    
-#@njit
+@njit
 def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,rhoS,gamma,grav,solidAcc,mu,d=2):
     '''
@@ -85,7 +85,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             forces[i,:] = np.sum(FFluidSolid,0)
     return forces
 
-#@njit
+@njit
 def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,OG, V_OG,A_OG,part,nSolid,dt):
     '''
@@ -128,12 +128,10 @@ def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partR
         F=np.array([0.0,0.0])
     else :
         F = np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,ms,B,rhoF,       rhoS,gamma,grav,A_OG,mu),0)
-    print("Force fluid -> solid :")
-    print(F)
     A_OG = grav + F/(ms*nSolid)
-    dV_OG = A_OG*dt
+    V_OG = V_OG + A_OG*dt
     dOG = V_OG*dt
-    return dOG, dV_OG, A_OG
+    return dOG, V_OG, A_OG
 
 @njit
 def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, dV_OG):
@@ -158,7 +156,7 @@ def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, dV_OG):
             partVel[i,1]=partVel[i,1]+dV_OG[1]
     return partPos, partVel 
 
-#@njit
+@njit
 def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,solidVel,solidAcc,shepardMin = 10**(-6),d=2):
     '''
