@@ -100,15 +100,21 @@ def MorrisViscContrib(mu,rho_i, rho_j,dwdr,rVel,rPos,m):
 
 @njit
 def FFluidSolidContrib(pi, pj, mu, rho_i, rho_j,dwdr,rVel,rPos,m,ms):
+    '''
+    Contribution of the fluid solid contrib according to Bouscasse et al's work 
+    inputs : 
+        -pi & pj : fluid and solid particles pressure
+        -rhoi & rhoj : fluid and solid particles density
+        -dwdr : gradient of the kernel 
+        -rVel : relative velocity between solid and fluid particles
+        -rPos : relative position between solid and fluid particles
+        -m & ms : mass of fluid or a solid particle
+    '''
     F = np.zeros_like(rPos)
-    #TODO : COMPLETE HERE
     rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
     veldotpos = rVel[:,0]*rPos[:,0]+rVel[:,1]*rPos[:,1]
-    #F[:,0] = -(pi+pj)*m/rho_i*ms/rho_j*dwdr*rPos[:,0]/rNorm
-    #F[:,1] = -(pi+pj)*m/rho_i*ms/rho_j*dwdr*rPos[:,1]/rNorm
     F[:,0] = -(-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,0]/rNorm
     F[:,1] = -(-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,1]/rNorm
-    #END
     return F
 
 
