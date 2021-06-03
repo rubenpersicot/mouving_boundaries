@@ -385,25 +385,31 @@ def interpolateBoundaryPeriodicX(partBOUND,partSPID,partPos,partVel,partRho,list
             partRho[i] = density(pres,B,rhoF,gamma)
     return partRho,partVel
 
-@njit
+
+#-------------------------------------------------------------------------------------------
+#---------------------------------Project function------------------------------------------
+#-------------------------------------------------------------------------------------------
 def initMobileBoundVelocity(partMOBILEBOUND, partVel, U):
     '''
     Initialisation of mobile bound particle velocity:
+    (It is specific to the Couette flow project)
         - partMOBILEBOUND : table of True,False showing which particle is a mobile Boundary
         - partVel : table of particles velocities
         - U : upper boundary velocity
+       
     '''
     nPart = len(partMOBILEBOUND)
     for i in range(nPart):
         if partMOBILEBOUND[i]:
             partVel[i][0] = U
     return partVel
-
-
+#-------------------------------------------------------------------------------------------
+#---------------------------------Project function------------------------------------------
+#-------------------------------------------------------------------------------------------
 def interpolateMobileBoundaryPeriodicX(partMOBILEBOUND,partSPID,partPos,partVel, wallVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,xper,shepardMin = 10**(-6),d=2):
     '''
-    interpolate the pressure and velocity at the walls
+    interpolate the pressure and velocity at the mobile walls
     input : 
         - partMOBILEBOUND : table of True,False showing which particle is a mobile Boundary
         - partSPID : table of particles SPIDs
@@ -457,12 +463,13 @@ def interpolateMobileBoundaryPeriodicX(partMOBILEBOUND,partSPID,partPos,partVel,
                 pres = np.sum(PressInt,0)/shepard
                 partRho[i] = density(pres,B,rhoF,gamma)
     return partRho, partVel
-
-
+#-------------------------------------------------------------------------------------------
+#---------------------------------Project function------------------------------------------
+#-------------------------------------------------------------------------------------------
 def interpolateMobileBoundary(partMOBILEBOUND,partSPID,partPos,partVel, wallVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,shepardMin = 10**(-6),d=2):
     '''
-    interpolate the pressure and velocity at the walls
+    interpolate the pressure and velocity at the mobiles walls
     input : 
         - partMOBILEBOUND : table of True,False showing which particle is a mobile Boundary
         - partSPID : table of particles SPIDs
@@ -736,7 +743,9 @@ def integrationStepPeriodicX(partFLUID,partPos,partVel,partRho,partFORCES,partDR
     #periodicity        
     partPos[:,0] = np.mod(partPos[:,0],xper)
     return partPos,partVel,partRho
-    
+#-------------------------------------------------------------------------------------------
+#---------------------------------Project function------------------------------------------
+#-------------------------------------------------------------------------------------------
 @njit
 def integrationStepPeriodicX_Moving_Bound(partMOBILEBOUND,partPos,partVel,partRho,partFORCES,partDRHODT,dt,xper):
     '''
@@ -764,11 +773,14 @@ def integrationStepPeriodicX_Moving_Bound(partMOBILEBOUND,partPos,partVel,partRh
     #periodicity        
     partPos[:,0] = np.mod(partPos[:,0],xper)
     return partPos, partRho
-    
+#-------------------------------------------------------------------------------------------
+#---------------------------------Project function------------------------------------------
+#-------------------------------------------------------------------------------------------    
 @njit
 def integrationStepPeriodicX_Moving_BoundCavity(partMOBILEBOUND,partPos,partVel,partRho,partFORCES,partDRHODT,dt,xper):
     '''
     Euler explicit integration step for mobile bound particle
+    Specific to the uppper boundary in the lid driven cavity project
     input : 
             - partMOBILEBOUND : True if a MOBILEBOUND particle
             - partPos : particle position
@@ -782,6 +794,8 @@ def integrationStepPeriodicX_Moving_BoundCavity(partMOBILEBOUND,partPos,partVel,
             - partVel : updated particle velocity
             - partRho : updated particle density
     '''
+    #There is an unclean manipulation so that only the mobile bound particles move. 
+    #Must be reworked on a new version
     nPart = len(partPos)
     partIntermed = np.zeros((nPart,2))
     for i in range(nPart):
@@ -864,8 +878,6 @@ def computeForcesMorrisPeriodicX(partFLUID,partSPID,partPos,partVel,partRho,list
                 v_i = partVel[i,:]
                 #Continuity Velocity :  the velocity is the true wall velocity 
                 v_j = partVel[listnb][:]
-                #v_j[partFLUID[listnb]==False][:,0]= 0 #set wall velocity to true vel
-                #v_j[partFLUID[listnb]==False][:,1]= 0 #set wall velocity to true vel
                 rVelCont = v_i-v_j
                 #Viscosity velocity
                 # use interpolated velocity (see next TD)
@@ -933,8 +945,6 @@ def computeForcesMorris(partFLUID,partSPID,partPos,partVel,partRho,listNeibSpace
             v_i = partVel[i,:]
             #Continuity Velocity :  the velocity is the true wall velocity 
             v_j = partVel[listnb][:]
-            #v_j[partFLUID[listnb]==False][:,0]= 0 #set wall velocity to true vel
-            #v_j[partFLUID[listnb]==False][:,1]= 0 #set wall velocity to true vel
             rVelCont = v_i-v_j
             #Viscosity velocity
             # use interpolated velocity (see next TD)

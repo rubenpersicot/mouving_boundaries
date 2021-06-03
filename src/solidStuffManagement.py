@@ -15,16 +15,6 @@ from src.contrib import *
 from src.spyh import *
 
 
-@njit
-def computeCenterOfMass(part, n):
-    '''
-    -part : ....
-    - n : number of solid particle
-    
-    '''
-    infoTab = part[:,INFO]
-    OG = np.array([1/n*np.sum(part[infoTab == MOBILESOLID] [:,POS[0]]),1/n*np.sum(part[infoTab == MOBILESOLID] [:,POS[1]])])
-    return OG
 
    
 #@njit
@@ -43,14 +33,17 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             - aW : constant of kernel
             - h : smoothing length
             - m : particle mass
+            - ms : solid particle mass
             - B : state constant
             - rhoF : reference density
+            - rhoS : solid reference density
             - gamma : polytropic gas constant
             - grav : gravitational acceleration
+            - solidAcc : the acceleration of center of mass of the solid
             - mu : viscosity
             - d : dimension
         return :
-            - forces : table of the particle forces
+            - forces : table of the forces on each solid particle
     '''
     forces = np.zeros_like(partVel)
     drhodt = np.zeros_like(partRho)
@@ -96,8 +89,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
 def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,OG, V_OG,A_OG,part,nSolid,dt):
     '''
-        Compute the forces using Morris viscous forces
-        and the RHS for the continuity equation
+        Computes the movement of the center of mass
         input :
             - partMOBILESOLID : True if a MOBILESOLID particle
             - partSPID :  particle space ID
@@ -108,23 +100,30 @@ def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partR
             - aW : constant of kernel
             - h : smoothing length
             - m : particle mass
+            - ms : solid particle mass
             - B : state constant
             - rhoF : reference density
             - gamma : polytropic gas constant
             - grav : gravitational acceleration
+            - OG : the current position of the center of mass
+            - V_OG : the current velocity of the center of mass
+            - A_OG : the current acceleration of the center of mass
             - mu : viscosity
             - d : dimension
         return :
-            - forces : table of the particle forces
+            - doG : the delta of displacement of the center of mass
+            - dV_OG : the delta of velocity of the center of mass
+            - A_OG : the new acceleration of the center of mass
     '''
     nPart = len(partMOBILESOLID)
     centerOfMassPosX, centerOfMassPosY = 0.0,0.0
+    #compute the center of mass position
     for i in range(nPart):
         if partMOBILESOLID[i]:
             centerOfMassPosX += partPos[i,0]
             centerOfMassPosY += partPos[i,1]
     centerOfMassPos = 1/nSolid*np.array([centerOfMassPosX, centerOfMassPosY])
-
+    #if we are above the free surface, no forces are computed
     if (centerOfMassPos[1]-0.2)>1:
         F=np.array([0.0,0.0])
     else :
@@ -132,26 +131,38 @@ def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partR
     print("Force fluid -> solid :")
     print(F)
     A_OG = grav + F/(ms*nSolid)
-    V_OG = V_OG + A_OG*dt
+    dV_OG = A_OG*dt
     dOG = V_OG*dt
-    return dOG, V_OG, A_OG
+    return dOG, dV_OG, A_OG
 
 @njit
-def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, V_OG):
+def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, dV_OG):
+    '''
+    computes the global movement of the solid which is considered rigid
+    inputs :
+            - partMOBILESOLID : True if a MOBILESOLID particle
+            - partPos : particle position
+            - partVel : particle velocity
+            - doG : the delta of displacement of the center of mass
+            - dV_OG : the delta of velocity of the center of mass 
+    outputs : 
+            -partPos : the updated table of position
+            -partVel : the updated table of velocity
+    '''
     nPart = len(partMOBILESOLID)
     for i in range(nPart):
         if partMOBILESOLID[i]:
             partPos[i,0]=partPos[i,0]+dOG[0]
             partPos[i,1]=partPos[i,1]+dOG[1]
-            partVel[i,0]=partVel[i,0]+V_OG[0]
-            partVel[i,1]=partVel[i,1]+V_OG[1]
+            partVel[i,0]=partVel[i,0]+dV_OG[0]
+            partVel[i,1]=partVel[i,1]+dV_OG[1]
     return partPos, partVel 
 
 #@njit
 def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
                         aW,h,m,B,rhoF,gamma,grav,solidVel,solidAcc,shepardMin = 10**(-6),d=2):
     '''
-    interpolate the pressure and velocity at the walls
+    interpolate the pressure and velocity on the mobile solid
     input : 
         - partMOBILESOLID : table of True,False showing which particle is a MOBILESOLID
         - partSPID : table of particles SPIDs
@@ -164,11 +175,12 @@ def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,part
         - m : particle mass
         - B, rhoF, gamma : state equation parameters
         - grav : gravital field acceleration
-        - SolidVel : velocity of the solid particles --> constant as the solid is considered rigid
+        - solidVel : velocity of the solid particles --> constant as the solid is considered rigid
+        - solidAcc : acceleration of the solid particles
         - shepardMin : threshold for the shepard
     output : 
         - partRho : updated table of density with interpolated pressure 
-        - partVel : fictious boundary velocity (not true velocity)
+        - partVel : new mobile solid velocity
     '''
     nPart = len(partMOBILESOLID)
     for i in range(nPart):
@@ -184,7 +196,6 @@ def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,part
                 rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
                 q=rNorm/h
                 w_ij = wend(q,aW,h)
-                #
                 rho_j=partRho[listnb]
                 P_j= pressure(rho_j,B,rhoF,gamma)
                 rho_j[rho_j<rhoF] = rhoF
