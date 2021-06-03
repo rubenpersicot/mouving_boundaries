@@ -28,7 +28,7 @@ def computeCenterOfMass(part, n):
 
 @njit   
 def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,d=2):
+                        aW,h,m,ms,B,rhoF,rhoS,gamma,grav,solidAcc,mu,d=2):
     '''
         Compute the forces using Morris viscous forces
         and the RHS for the continuity equation
@@ -70,6 +70,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             rNorm = (rPos[:,0]*rPos[:,0]+rPos[:,1]*rPos[:,1])**.5
             q=rNorm/h
             dwdr = Fw(q,aW,h)
+            w_ij = wend(q,aW,h)
             er = np.zeros_like(rPos)
             er[:,0] = rPos[:,0]/rNorm
             er[:,1] = rPos[:,1]/rNorm
@@ -80,8 +81,11 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
             #pressure contrib
             rho_s=partRho[i]
             rho_f=partRho[listnb]
-            P_s=0#pressure(rho_s,B,rhoS,gamma)
+            vol_f=m/rho_f
             P_f=pressure(rho_f,B,rhoF,gamma)
+            #solid particle pressure calculated according to  Cf Adami, Hu & Adams, 2012
+            P_s = pressureInterpolationContrib(rho_f, P_f, vol_f,rPos,w_ij,grav,solidAcc)
+            P_s[P_s<0] = 0            
             FFluidSolid = FFluidSolidContrib(P_f, P_s, mu, rho_f, rho_s,dwdr,rVel,rPos,m,ms)
             # We sum the contrib for all fluid particles
             forces[i,:] = np.sum(FFluidSolid,0)
@@ -89,7 +93,7 @@ def computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,lis
 
 @njit
 def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,OG, V_OG,dt):
+                        aW,h,m,ms,B,rhoF,rhoS,gamma,grav,mu,OG, V_OG,A_OG,part,nSolid,dt):
     '''
         Compute the forces using Morris viscous forces
         and the RHS for the continuity equation
@@ -112,13 +116,24 @@ def IntegrateCenterOfMassMovement(partMOBILESOLID,partSPID,partPos,partVel,partR
         return :
             - forces : table of the particle forces
     '''
-    F = np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,ms,B,rhoF,       rhoS,gamma,grav,mu),0)
+    nPart = len(partMOBILESOLID)
+    centerOfMassPosX, centerOfMassPosY = 0.0,0.0
+    for i in range(nPart):
+        if partMOBILESOLID[i]:
+            centerOfMassPosX += partPos[i,0]
+            centerOfMassPosY += partPos[i,1]
+    centerOfMassPos = 1/nSolid*np.array([centerOfMassPosX, centerOfMassPosY])
+
+    if (centerOfMassPos[1]-0.2)>1:
+        F=np.array([0.0,0.0])
+    else :
+        F = np.sum(computeForcesFluidSolid(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,aW,h,m,ms,B,rhoF,       rhoS,gamma,grav,A_OG,mu),0)
     print("Force fluid -> solid :")
     print(F)
-    A_OG = grav + F/ms
+    A_OG = grav + F/(ms*nSolid)
     V_OG = V_OG + A_OG*dt
     dOG = V_OG*dt
-    return dOG, V_OG
+    return dOG, V_OG, A_OG
 
 @njit
 def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, V_OG):
@@ -133,7 +148,7 @@ def MoveSolidParticles(partMOBILESOLID, partPos, partVel, dOG, V_OG):
 
 @njit
 def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,partRho,listNeibSpace,\
-                        aW,h,m,B,rhoF,gamma,grav,solidVel,shepardMin = 10**(-6),d=2):
+                        aW,h,m,B,rhoF,gamma,grav,solidVel,solidAcc,shepardMin = 10**(-6),d=2):
     '''
     interpolate the pressure and velocity at the walls
     input : 
@@ -174,7 +189,7 @@ def interpolateMobileSolidBoundary(partMOBILESOLID,partSPID,partPos,partVel,part
                 rho_j[rho_j<rhoF] = rhoF
                 vol_j = m/rho_j
                 rho_j= partRho[listnb]
-                PressInt = pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav)
+                PressInt = pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav,solidAcc)
                 PressInt[PressInt<0] = 0
                 shepard = shepardContrib(vol_j,w_ij)
                 shepard = max(np.sum(shepard,0), shepardMin)

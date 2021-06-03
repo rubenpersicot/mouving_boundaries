@@ -43,13 +43,13 @@ def velocityDivContrib(rVel,rPos,dwdr,er,m):
     return dV
 
 @njit
-def pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav):
+def pressureInterpolationContrib(rho_j, P_j, vol_j,rPos,w_ij,grav,acc = np.array([0,0])):
     '''PressureInterpolation :  interpolate the pressure based
                 Cf Adami, Hu & Adams, 2012
     '''
     pressInt = np.zeros(np.shape(rPos))
     #COMPLETE HERE
-    pressInt = (P_j + rho_j*(rPos@grav.transpose()))*vol_j*w_ij
+    pressInt = (P_j + rho_j*(rPos@(grav-acc).transpose()))*vol_j*w_ij
     #END
     return pressInt
 
@@ -106,8 +106,8 @@ def FFluidSolidContrib(pi, pj, mu, rho_i, rho_j,dwdr,rVel,rPos,m,ms):
     veldotpos = rVel[:,0]*rPos[:,0]+rVel[:,1]*rPos[:,1]
     #F[:,0] = -(pi+pj)*m/rho_i*ms/rho_j*dwdr*rPos[:,0]/rNorm
     #F[:,1] = -(pi+pj)*m/rho_i*ms/rho_j*dwdr*rPos[:,1]/rNorm
-    F[:,0] = (-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,0]/rNorm
-    F[:,1] = (-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,1]/rNorm
+    F[:,0] = -(-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,0]/rNorm
+    F[:,1] = -(-(pi+pj)+mu*2*(2+2)*(veldotpos/rNorm**2))*m/rho_i*ms/rho_j*dwdr*rPos[:,1]/rNorm
     #END
     return F
 
