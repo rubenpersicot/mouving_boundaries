@@ -1,23 +1,49 @@
-# SPH_Projet
+# mouving_boundaries
 
-Ce projet fait partie du cours Smoothed Particle Hydrodynamics. L'objectif est de réaliser des simulations numériques à l'aide de cette méthode tout en intégrant des parois mobiles. Pour ce faire, on utilise l'article "Nonlinear water wave interaction with floating bodies in SPH" de B.Bouscasse et al. disponible dans le dossier.
+Mouving_boundaries is an academic project. It is a part of the course Smoothed Particle Hydrodynamics taught at the [Ecole des Ponts Paristech](https://www.ecoledesponts.fr/) by Dr Violeau and Dr Carmigniani. 
 
-Les objectifs fixés sont présentés ci-dessous et sont de difficulté croissante : 
+### 1. Objectives
+Our goal is to undertake numerical simulations using the SPH method on configurations in which boundaries are mobile. In order to do so, we based our work on the articles available on the "doc" folder.
 
--1 : Etude d'un l'écoulement de couette plan.
+Here are our objectives, listed by increasing difficulty :
 
--2 : Etude d'un écoulement dans une cavité entrainée.
+-1 : Study of a [Couette's flow](https://github.com/rubenpersicot/mouving_boundaries/blob/main/1Couette_flow.ipynb).
 
--3 : Etude d'un écoulement suite à la chute d'un solide.
+-2 : Study of a [lid driven cavity](https://github.com/rubenpersicot/mouving_boundaries/blob/main/2Lid_driven_cavity.ipynb).
+
+-3 : Study of a flow induced by a [floating solid](https://github.com/rubenpersicot/mouving_boundaries/blob/main/3Floating_solid.ipynb).
+
+Each objective is adressed in a jupyter notebook named after the objective.
+Python modules used to solve these problems are located in the src project. Note a major part of the code in this module was written by Dr Carmigniani. More precisely, it is a sum up of all the practical exercises we did in class. 
+
+Nonetheless, to simulate these flows we had to create new functions. They can be easily witnessed by the following comment :
+```python
+# Project function
+```
+The module solidStuffManagement.py is dedicated to solve the third objective. Every function located in it is new.
+
+### 2. Repository architecture 
+- [figures](https://github.com/rubenpersicot/mouving_boundaries/tree/main/figures) contains figures.
+- [references](https://github.com/rubenpersicot/mouving_boundaries/tree/main/references) contains all the articles we read to do this project.
+- [results](https://github.com/rubenpersicot/mouving_boundaries/tree/main/results) contains the three simulations. Each simulation is a set of frames. 
+- [src](https://github.com/rubenpersicot/mouving_boundaries/tree/main/src) contains Python modules.
 
 
-Afin de simuler ces différents écoulements nous avons créé de nouvelles fonctions dans les fichiers Python existants. 
 
-Celles-ci peuvent être aisément identifiées à l'aide du commentaire initial : 
-#-------------------------------------------------------------------------------------------
-#---------------------------------Project function------------------------------------------
-#-------------------------------------------------------------------------------------------
+## Installation
 
+To check our project, you will need [anaconda](https://docs.anaconda.com/anaconda/install/index.html).
 
-Le fichier solidStuffManagement.py est dédié à la résolution du troisième objectif. 
-Toutes les fonctions qui y sont présentes sont nouvelles. 
+## Usage 
+Simply run the jupyter notebooks !
+
+## Final grade
+17/20
+
+## Credits 
+[Yohan Lanier](https://github.com/yohan-lanier)
+
+[Remi Carmigniani](https://github.com/remingtonCarmi)
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
