@@ -20,7 +20,7 @@ Nonetheless, to simulate these flows we had to create new functions. They can be
 ```python
 # Project function
 ```
-The module solidStuffManagement.py is dedicated to solve the third objective. Every function located in it is new.
+The module [solidStuffManagement.py](https://github.com/rubenpersicot/mouving_boundaries/blob/main/src/solidStuffManagement.py) is dedicated to solve the third objective. Every function located in it is new.
 
 ### 2. Repository architecture 
 - [figures](https://github.com/rubenpersicot/mouving_boundaries/tree/main/figures) contains figures.
@@ -42,7 +42,9 @@ Simply run the jupyter notebooks !
 
 ## Credits 
 [Damien Violeau](https://www.ecoledesponts.fr/damien-violeau)
+
 [Remi Carmigniani](https://github.com/remingtonCarmi)
+
 [Yohan Lanier](https://github.com/yohan-lanier)
 
 ## License
