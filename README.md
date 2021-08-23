@@ -41,11 +41,7 @@ Simply run the jupyter notebooks !
 17/20
 
 ## Credits 
-[Damien Violeau](https://www.ecoledesponts.fr/damien-violeau)
-
-[Remi Carmigniani](https://github.com/remingtonCarmi)
-
-[Yohan Lanier](https://github.com/yohan-lanier)
+[Damien Violeau](https://www.ecoledesponts.fr/damien-violeau), [Remi Carmigniani](https://github.com/remingtonCarmi), [Yohan Lanier](https://github.com/yohan-lanier)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
