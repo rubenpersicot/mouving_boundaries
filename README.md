@@ -1,6 +1,6 @@
 # mouving_boundaries
 
-The [mouving_boundaries](https://github.com/rubenpersicot/mouving_boundaries) academic project is  part of the course "Smoothed Particle Hydrodynamics" (SPH) taught at the [Ecole des Ponts Paristech](https://www.ecoledesponts.fr/) by Dr Violeau and Dr Carmigniani. 
+The project [mouving_boundaries](https://github.com/rubenpersicot/mouving_boundaries) is part of the course "Smoothed Particle Hydrodynamics" (SPH) taught at the [Ecole des Ponts Paristech](https://www.ecoledesponts.fr/) by Dr Violeau and Dr Carmigniani. 
 
 ### 1. Objectives
 Our goal is to undertake numerical simulations using the SPH method on configurations in which boundaries are mobile. In order to do so, we based our work on the articles available on the "doc" folder.
